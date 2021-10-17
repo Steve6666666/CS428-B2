@@ -181,7 +181,6 @@ public class PrismManager : MonoBehaviour
                     print(collision.a.name + " and " + collision.b.name);
                     prismColliding[collision.a] = true;
                     prismColliding[collision.b] = true;
-
                     ResolveCollision(collision);
                 }
             }
@@ -311,16 +310,22 @@ public class PrismManager : MonoBehaviour
         var prismA = collision.a;
         var prismB = collision.b;
 
-        
-        collision.penetrationDepthVectorAB = Vector3.zero;
+        GJK gjk = new GJK();
+
+        if (!gjk.queryCollision(prismA, prismB))
+            return false;
+
+        collision.penetrationDepthVectorAB = gjk.penetrationVector;
+
+        //collision.penetrationDepthVectorAB = Vector3.zero;
 
         return true;
     }
-    
+
     #endregion
 
     #region Private Functions
-    
+
     private void ResolveCollision(PrismCollision collision)
     {
         var prismObjA = collision.a.prismObject;
