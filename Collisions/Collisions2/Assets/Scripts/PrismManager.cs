@@ -209,10 +209,56 @@ public class PrismManager : MonoBehaviour
     #endregion
 
     #region Incomplete Functions
+    private Rectangle change(Prism p)
+    {
+        float maxX=float.MinValue;
+        float minX=float.MaxValue;
+        float maxY= float.MinValue;
+        float minY= float.MinValue;
+        for(int i = 0; i < p.points.Count(); i++)
+        {
+            if (p.points[i].x > maxX)
+            {
+                maxX = p.points[i].x;
+            }else if(p.points[i].x< minX)
+            {
+                minX = p.points[i].x;
+            }else if (p.points[i].y > maxY) 
+            {
+                maxY = p.points[i].y;
+            }else if(p.points[i].y< minY)
+            {
+                minY = p.points[i].y;
+            }
+        }
+
+        return new Rectangle(1,2,2,3);
+    }
 
     private IEnumerable<PrismCollision> PotentialCollisions()
     {
-        shapes.Clear();
+        Quadtree quad = new Quadtree(0, new Rectangle(-10, -10, 20,20));
+        quad.clear();
+        for (int i = 0; i < prisms.Count; i++)
+        {
+            Rectangle temp = change(prisms[i]);
+            quad.insert(temp);
+        }
+
+        for (int i = 0; i < prisms.Count; i++)
+        {
+            for (int j = i + 1; j < prisms.Count; j++)
+            {
+                var checkPrisms = new PrismCollision();
+                checkPrisms.a = prisms[i];
+                checkPrisms.b = prisms[j];
+
+                yield return checkPrisms;
+            }
+        }
+     
+
+        /*shapes.Clear();
         foreach (var prism in prisms)
         {
             float left_x = float.MaxValue; float right_x = float.MinValue;
@@ -352,7 +398,7 @@ public class PrismManager : MonoBehaviour
             }
 
         }
-        yield break;
+        yield break;*/
     }
 
     private bool CheckCollision(PrismCollision collision)
@@ -480,7 +526,7 @@ public class PrismManager : MonoBehaviour
         private int MAX_LEVELS = 5;
 
         private int level;
-        private List<Prism> objects;
+        private List<Rectangle> objects;
         private Rectangle bounds;
         private Quadtree[] nodes;
 
@@ -490,7 +536,7 @@ public class PrismManager : MonoBehaviour
         public Quadtree(int pLevel, Rectangle pBounds)
         {
             level = pLevel;
-            objects = new List<Prism>();
+            objects = new List<Rectangle>();
             bounds = pBounds;
             nodes = new Quadtree[4];
         }
@@ -519,13 +565,114 @@ public class PrismManager : MonoBehaviour
             nodes[2] = new Quadtree(level + 1, new Rectangle(x, y + subHeight, subWidth, subHeight));
             nodes[3] = new Quadtree(level + 1, new Rectangle(x + subWidth, y + subHeight, subWidth, subHeight));
         }
+        
+        private int getIndex(Rectangle pRect)
+        {
+            int index = -1;
+            double verticalMidpoint = bounds.getX() + (bounds.getWidth() / 2);
+            double horizontalMidpoint = bounds.getY() + (bounds.getHeight() / 2);
+
+            // Object can completely fit within the top quadrants
+            bool topQuadrant = (pRect.getY() < horizontalMidpoint && pRect.getY() + pRect.getHeight() < horizontalMidpoint);
+            // Object can completely fit within the bottom quadrants
+            bool bottomQuadrant = (pRect.getY() > horizontalMidpoint);
+
+            // Object can completely fit within the left quadrants
+            if (pRect.getX() < verticalMidpoint && pRect.getX() + pRect.getWidth() < verticalMidpoint)
+            {
+                if (topQuadrant)
+                {
+                    index = 1;
+                }
+                else if (bottomQuadrant)
+                {
+                    index = 2;
+                }
+            }
+            // Object can completely fit within the right quadrants
+            else if (pRect.getX() > verticalMidpoint)
+            {
+                if (topQuadrant)
+                {
+                    index = 0;
+                }
+                else if (bottomQuadrant)
+                {
+                    index = 3;
+                }
+            }
+
+            return index;
+        }
+        
+        
+        public void insert(Rectangle pRect)
+        {
+            if (nodes[0] != null)
+            {
+                int index = getIndex(pRect);
+
+                if (index != -1)
+                {
+                    nodes[index].insert(pRect);
+
+                    return;
+                }
+            }
+
+            objects.Add(pRect);
+
+            if (objects.Count() > MAX_OBJECTS && level < MAX_LEVELS)
+            {
+                if (nodes[0] == null)
+                {
+                    split();
+                }
+
+                int i = 0;
+                while (i < objects.Count())
+                {
+                    int index = getIndex(objects[i]);
+                    if (index != -1)
+                    {
+                        //可能有问题
+                        Rectangle ra = nodes[index].objects[i];
+                        nodes[index].objects.RemoveAt(i);
+                        nodes[index].insert(ra);
+                    }
+                    else
+                    {
+                        i++;
+                    }
+                }
+            }
+        }
+
+
+        public List<Rectangle> retrieve(List<Rectangle> returnObjects, Rectangle pRect)
+        {
+            int index = getIndex(pRect);
+            if (index != -1 && nodes[0] != null)
+            {
+                nodes[index].retrieve(returnObjects, pRect);
+            }
+
+            //returnObjects.addAll(objects);
+            //可能有问题
+            for(int i = 0; i < objects.Count; i++)
+            {
+                returnObjects.Add(objects[i]);
+            }
+
+            return returnObjects;
+        }
     }
     private class Rectangle
     {
-        int width;
-        int height;
-        int x;
-        int y;
+        float width;
+        float height;
+        float x;
+        float y;
         public Rectangle(int x,int y,int width,int height)
         {
             this.x = x;
@@ -533,21 +680,22 @@ public class PrismManager : MonoBehaviour
             this.width = width;
             this.height = height;
         }
-        public int getX()
+        public float getX()
         {
             return x;
         }
-        public int getY()
+        public float getY()
         {
             return y;
         }
-        public int getWidth()
+        public float getWidth()
         {
             return width;
         }
-        public int getHeight()
+        public float getHeight()
         {
             return height;
         }
     }
+
 }
