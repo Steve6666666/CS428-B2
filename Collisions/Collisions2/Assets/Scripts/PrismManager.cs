@@ -6,6 +6,7 @@ using UnityEngine;
 using System;
 using Random = UnityEngine.Random;
 
+
 public class PrismManager : MonoBehaviour
 {
     public int prismCount = 10;
@@ -472,4 +473,81 @@ public class PrismManager : MonoBehaviour
     }
 
     #endregion
+    private class Quadtree
+    {
+
+        private int MAX_OBJECTS = 10;
+        private int MAX_LEVELS = 5;
+
+        private int level;
+        private List<Prism> objects;
+        private Rectangle bounds;
+        private Quadtree[] nodes;
+
+        /*
+         * Constructor
+         */
+        public Quadtree(int pLevel, Rectangle pBounds)
+        {
+            level = pLevel;
+            objects = new List<Prism>();
+            bounds = pBounds;
+            nodes = new Quadtree[4];
+        }
+        public void clear()
+        {
+            objects.Clear();
+
+            for (int i = 0; i < nodes.Count(); i++)
+            {
+                if (nodes[i] != null)
+                {
+                    nodes[i].clear();
+                    nodes[i] = null;
+                }
+            }
+        }
+        private void split()
+        {
+            int subWidth = (int)(bounds.getWidth() / 2);
+            int subHeight = (int)(bounds.getHeight() / 2);
+            int x = (int)bounds.getX();
+            int y = (int)bounds.getY();
+
+            nodes[0] = new Quadtree(level + 1, new Rectangle(x + subWidth, y, subWidth, subHeight));
+            nodes[1] = new Quadtree(level + 1, new Rectangle(x, y, subWidth, subHeight));
+            nodes[2] = new Quadtree(level + 1, new Rectangle(x, y + subHeight, subWidth, subHeight));
+            nodes[3] = new Quadtree(level + 1, new Rectangle(x + subWidth, y + subHeight, subWidth, subHeight));
+        }
+    }
+    private class Rectangle
+    {
+        int width;
+        int height;
+        int x;
+        int y;
+        public Rectangle(int x,int y,int width,int height)
+        {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+        }
+        public int getX()
+        {
+            return x;
+        }
+        public int getY()
+        {
+            return y;
+        }
+        public int getWidth()
+        {
+            return width;
+        }
+        public int getHeight()
+        {
+            return height;
+        }
+    }
 }
