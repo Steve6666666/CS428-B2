@@ -231,21 +231,43 @@ public class PrismManager : MonoBehaviour
                 minY = p.points[i].y;
             }
         }
-
-        return new Rectangle(1,2,2,3);
+        float width = Math.Abs(maxX - maxY);
+        float height = Math.Abs(maxY - minY);
+        return new Rectangle(minX,minY,width,height);
     }
 
     private IEnumerable<PrismCollision> PotentialCollisions()
     {
-        Quadtree quad = new Quadtree(0, new Rectangle(-10, -10, 20,20));
+        Quadtree quad = new Quadtree(0, new Rectangle(-5, -5, 15,15));
         quad.clear();
         for (int i = 0; i < prisms.Count; i++)
         {
             Rectangle temp = change(prisms[i]);
+            temp.setIndex(i);
             quad.insert(temp);
         }
-
+        List<Rectangle> returnObjects = new List<Rectangle>();
         for (int i = 0; i < prisms.Count; i++)
+        {
+            returnObjects.Clear();
+            quad.retrieve(returnObjects, change(prisms[i]));
+
+            for (int x = 0; x < returnObjects.Count; x++)
+            {
+                
+                var checkPrisms = new PrismCollision();
+                checkPrisms.a = prisms[returnObjects[x].getIndex()];
+                for(int j=x+1;j< returnObjects.Count; j++)
+                {
+                    checkPrisms.b = prisms[returnObjects[j].getIndex()];
+                    yield return checkPrisms;
+                }
+
+                
+                // Run collision detection algorithm between objects
+            }
+        }
+        /*for (int i = 0; i < prisms.Count; i++)
         {
             for (int j = i + 1; j < prisms.Count; j++)
             {
@@ -255,7 +277,7 @@ public class PrismManager : MonoBehaviour
 
                 yield return checkPrisms;
             }
-        }
+        }*/
      
 
         /*shapes.Clear();
@@ -555,10 +577,10 @@ public class PrismManager : MonoBehaviour
         }
         private void split()
         {
-            int subWidth = (int)(bounds.getWidth() / 2);
-            int subHeight = (int)(bounds.getHeight() / 2);
-            int x = (int)bounds.getX();
-            int y = (int)bounds.getY();
+            float subWidth = (bounds.getWidth() / 2);
+            float subHeight = (bounds.getHeight() / 2);
+            float x = bounds.getX();
+            float y = bounds.getY();
 
             nodes[0] = new Quadtree(level + 1, new Rectangle(x + subWidth, y, subWidth, subHeight));
             nodes[1] = new Quadtree(level + 1, new Rectangle(x, y, subWidth, subHeight));
@@ -636,8 +658,9 @@ public class PrismManager : MonoBehaviour
                     if (index != -1)
                     {
                         //可能有问题
-                        Rectangle ra = nodes[index].objects[i];
-                        nodes[index].objects.RemoveAt(i);
+                        Rectangle ra = objects[i];
+                        //nodes[index].objects.RemoveAt(i);
+                        objects.RemoveAt(i);
                         nodes[index].insert(ra);
                     }
                     else
@@ -673,7 +696,8 @@ public class PrismManager : MonoBehaviour
         float height;
         float x;
         float y;
-        public Rectangle(int x,int y,int width,int height)
+        int index;
+        public Rectangle(float x,float y,float width,float height)
         {
             this.x = x;
             this.y = y;
@@ -695,6 +719,14 @@ public class PrismManager : MonoBehaviour
         public float getHeight()
         {
             return height;
+        }
+        public int getIndex()
+        {
+            return index;
+        }
+        public void setIndex(int x)
+        {
+            this.index = x;
         }
     }
 
